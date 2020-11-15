@@ -1,0 +1,386 @@
+from matplotlib import image
+from matplotlib import pyplot as plt
+import numpy as np
+from PIL import Image
+from numpy import asarray
+from scipy import misc
+from scipy import stats
+import scipy
+import random
+
+# Pass Array size as array tuple like array.shape()
+# Returns a np.array 2d : [[22,334],[123,345],...]
+def initialize_population(array_size,popluation_size):
+    population = []
+
+    x = np.random.randint(array_size[0],size=(popluation_size))
+    y = np.random.randint(array_size[1],size=(popluation_size))
+    
+    
+    for z in range(popluation_size):
+        element = list((x[z],y[z]))
+        population.append(element)
+    return np.array(population)
+
+# print(initialize_population(mainarray.shape,50).shape)
+
+# This Function takes main image , babajee image and solution from population
+def fitness_function(mainimage,babaimage,solution):
+    x,y = babaimage.shape
+    startx,starty= solution
+    
+    if startx+x < (mainimage.shape)[0] and starty+y < (mainimage.shape)[1]:
+        result = mainimage[startx:startx+x,starty:starty+y]
+        tau, p_value = stats.kendalltau(babaimage, result)
+    
+        return tau
+    return -1.1111
+
+# It returns list of population's Fitness
+def get_fitness_of_all(population,mainimage,babaimage):
+    fitness = []
+    for individual in population:
+        fit = float("{:.2f}".format(fitness_function(mainimage,babaimage,list(individual))))
+        fitness.append(fit)
+    return list(fitness)
+# This function returns [[[x,y],correlation],.....]
+def add_fitness_to_population(population,fitness):
+    new_population = []
+    for x in range(len(fitness)):
+        temp = [population[x],fitness[x]]
+        new_population.append(temp)
+    return new_population
+
+# This sorts population on basis of correlation
+def sort_population(population):
+    return sorted(population, key = lambda x: x[1],reverse=True)
+
+# Takes 2 parents and returns 2 childs
+def cross_over(parent_one , parent_two):
+    # Get X , Y of each parent
+    one_x , one_y = parent_one
+    two_x , two_y = parent_two
+    # Get binary rep and then combine in one number
+    one_x = np.binary_repr(one_x,width=9)
+    one_y = np.binary_repr(one_y,width=10)
+    parent_one_binary = one_x+one_y
+
+    two_x = np.binary_repr(two_x,width=9)
+    two_y = np.binary_repr(two_y,width=10)
+    parent_two_binary = two_x+two_y
+
+    # Get Random Index for crossing over
+    random_index = np.random.randint(0,18)
+
+    # Parents crossed over
+    child_one = parent_one_binary[:random_index]+parent_two_binary[random_index:]
+    child_two = parent_two_binary[:random_index]+parent_one_binary[random_index:]
+
+    # Separating their x and y
+    child_one_x = child_one[:9]
+    child_one_y = child_one[9:]
+    child_two_x = child_two[:9]
+    child_two_y = child_two[9:]
+    child_one = list((int(child_one_x,2),int(child_one_y,2)))
+    child_two = list((int(child_two_x,2),int(child_two_y,2)))
+    return np.array(child_one), np.array(child_two)
+# Takes individual and mutates it
+def mutation(individual,fitness):
+    x , y =  individual
+    x = np.binary_repr(x,width=9)
+    y = np.binary_repr(y,width=10)
+    # Combined One Child
+    one = x+y
+    # if fitness >= 0.70:
+    #     random_index = np.random.randint(15,18)
+    #     random_two = np.random.randint(7,9)
+    # elif fitness >= 0.50:
+    #     random_index = np.random.randint(10,18)
+        
+        
+    # elif fitness <= 0.35:    
+    #     random_index = np.random.randint(0,15)
+        
+    # else:
+    #     random_index = np.random.randint(0,17)
+    #     random_two = np.random.randint(10,16)
+
+    # if one[random_index] == "0":
+    #     one = one[:random_index] + "1" + one[random_index+1:]
+    # else:
+    #     one = one[:random_index] + "0" + one[random_index+1:]
+    #     # Got x and Y
+    # if fitness >= 0.70 :
+    #     if one[random_index] == "0":
+    #         one = one[:random_two] + "1" + one[random_two+1:]
+    #     else:
+    #         one = one[:random_two] + "0" + one[random_two+1:]
+    
+    # NEW
+    if fitness >= 0.70:
+        random_index = np.random.randint(15,18)
+        random_two = np.random.randint(7,9)
+    elif fitness >= 0.50:
+        random_index = np.random.randint(12,17)
+        random_two = np.random.randint(5,9)
+        
+    elif fitness <= 0.35:    
+        # random_index = np.random.randint(0,15)
+        random_index = np.random.randint(9,17)
+        random_two = np.random.randint(10,16)
+    else:
+        random_index = np.random.randint(1,10)
+        random_two = np.random.randint(10,17)
+        # random_index = np.random.randint(0,17)
+        # random_two = np.random.randint(10,16)
+
+    if one[random_index] == "0":
+        one = one[:random_index] + "1" + one[random_index+1:]
+    else:
+        one = one[:random_index] + "0" + one[random_index+1:]
+        # Got x and Y
+    if fitness >= 0.70 :
+        if one[random_index] == "0":
+            one = one[:random_two] + "1" + one[random_two+1:]
+        else:
+            one = one[:random_two] + "0" + one[random_two+1:]
+
+    # # 
+    x = one[:9]
+    y = one[9:]
+    x = int(x,2)
+    y = int(y,2)
+    return np.array([x,y])
+def createRandomSortedList(num, start = 1, end = 100): 
+    arr = [] 
+    tmp = random.randint(start, end) 
+      
+    for x in range(num): 
+          
+        while tmp in arr: 
+            tmp = random.randint(start, end) 
+              
+        arr.append(tmp) 
+          
+    arr.sort() 
+      
+    return arr 
+
+# Main Control begins
+def main():
+    # load image as pixel array
+    number_of_generations = 0
+    threshold = 0.9
+    # best_fit_childs = [[[x,y],corre], ...... ]
+    best_fit_childs = []
+    mainFrame = Image.open('groupGray.jpg')
+    baba = Image.open("boothiGray.jpg")
+
+    mcols,mrows = mainFrame.size
+    bcols,brows = baba.size
+    print(f"Baba Jee Rows : {brows} baba jee cols : {bcols}")
+
+    babaarray = asarray(baba)
+    mainarray = asarray(mainFrame)
+
+    population = initialize_population(mainarray.shape,50)
+    
+    fitness = get_fitness_of_all(population,mainarray,babaarray)
+    
+    pop_with_fitness = add_fitness_to_population(population,fitness)
+    
+    pop_with_fitness = sort_population(pop_with_fitness)
+    # best_fit_childs.append(pop_with_fitness[0])
+    maxi = -111111
+    # Loop No of generations to a const number or threshold reached
+    print(pop_with_fitness)
+    print(pop_with_fitness[0])
+    current_best = pop_with_fitness[0]
+    gen_best = []
+    print("Qazi Bes")
+    print(pop_with_fitness[0])
+    while True:
+        childs = []
+        # if pop_with_fitness[0][1] >= threshold:
+        #     break
+        if number_of_generations == 600:
+            break
+        if pop_with_fitness[0][1] >= threshold:
+            print("Found")
+            print(number_of_generations)
+            break
+        for x in range(0,50,2):
+            parent_one = pop_with_fitness[x][0]
+            parent_two = pop_with_fitness[x+1][0]
+            child_one , child_two = cross_over(parent_one,parent_two)
+           
+            child_one = mutation(child_one,fitness_function(mainarray,babaarray,list(child_one)))
+           
+            child_two = mutation(child_two,fitness_function(mainarray,babaarray,list(child_two)))
+            # child_one = mutation(child_one)
+             
+            child_one_fit = fitness_function(mainarray,babaarray,list(child_one))
+            child_two_fit = fitness_function(mainarray,babaarray,list(child_two))
+            childs.append([child_one,child_one_fit])
+            childs.append([child_two,child_two_fit])
+            
+        # pop_with_fitness.extend(childs)
+        childs = sort_population(childs)
+        best_gen = childs[0]
+        gen_best.append(childs[0][1])
+        pop_with_fitness = pop_with_fitness[:10]
+        pop_with_fitness.extend(childs[:40])
+        pop_with_fitness = sort_population(pop_with_fitness)
+        # pop_with_fitness = pop_with_fitness[:100]
+        print("Best for next")
+        print(pop_with_fitness[0])
+        print("Best Child Gen from childs")
+        print(best_gen)
+        number_of_generations +=1
+        best_fit_childs.append(pop_with_fitness[0])
+        # if number_of_generations == 1000:
+        #     break
+        # # Select the parents (First two )
+        
+        # parent_two = 1
+        # parent_one = 0
+        # parent_one = pop_with_fitness[parent_one][0]
+        # parent_two = pop_with_fitness[parent_two][0]
+    
+        # print(parent_one,parent_two)
+        # # parent_three = np.random.randint(2,50)
+        # # parent_four = np.random.randint(2,50)
+        # # if parent_four == parent_three:
+        # #     parent_four = parent_three+1
+
+        # # parent_three = pop_with_fitness[parent_three][0]
+        # # parent_four = pop_with_fitness[parent_four][0]
+        
+        # child_one , child_two = cross_over(parent_one,parent_two)
+        # # child_three , child_four = cross_over(parent_three,parent_four)
+        # # print(child_one)
+        # print(child_one,child_two)
+        # child_one = mutation(child_one)
+     
+        # child_two = mutation(child_two)
+        # # child_three = mutation(child_three)
+        # # child_four = mutation(child_four)
+        # print(child_one,child_two)
+        # # float("{:.2f}".format(fitness_function(mainarray,babaarray,list(child_one))))
+        # child_one_fit = fitness_function(mainarray,babaarray,list(child_one))
+        # child_two_fit = fitness_function(mainarray,babaarray,list(child_two))
+        # # child_three_fit = fitness_function(mainarray,babaarray,list(child_three))
+        # # child_four_fit = fitness_function(mainarray,babaarray,list(child_four))
+
+        # child_one_fit = float("{:.2f}".format(child_one_fit))
+        # child_two_fit = float("{:.2f}".format(child_two_fit))
+        # # child_three_fit = float("{:.2f}".format(child_three_fit))
+        # # child_four_fit = float("{:.2f}".format(child_four_fit))
+
+
+        # childs_produced = []
+        # childs_produced.append([child_one,child_one_fit])
+        # childs_produced.append([child_two,child_two_fit])
+        # # childs_produced.append([child_three,child_three_fit])
+        # # childs_produced.append([child_four,child_four_fit])
+        # childs_produced = sort_population(childs_produced)
+ 
+        
+        # max_fit_child = childs_produced[0]
+        # best_fit_childs.append(max_fit_child)
+        # print(max_fit_child)
+        # if max_fit_child[1] >= threshold:
+        #     print("Found")
+        #     print(max_fit_child)
+        #     break
+        
+        # # if(child_one_fit >= child_two_fit):
+        # #     if child_one_fit >= threshold:
+        # #         print("Found")
+        # #         print(child_one)
+        # #         break
+        # #     best_fit_childs.append([child_one,child_one_fit])
+        # #     # if child_one_fit >= threshold:
+        # #     #     print(child_one)
+        # #     # else:
+        # #     #     print("Less than threshold in one")
+        # #     #     print(child_one_fit)
+        # # else:
+        # #     if child_two_fit >= threshold:
+        # #         print("Found")
+        # #         print(child_two)
+        # #         break
+        # #     best_fit_childs.append([child_two,child_two_fit])
+        # #     # if child_two_fit >= threshold:
+        # #     #     print(child_two) 
+        # #     # else:
+        # #     #     print("Less Than threshold in two")
+        # #     #     print(child_two_fit)
+        # # Make New Generation by adding new childs and then selecting best from 
+        # # New along with old ones
+        # pop_with_fitness.append([child_one,child_one_fit])
+        # pop_with_fitness.append([child_two,child_two_fit])
+        # # pop_with_fitness.append([child_three,child_three_fit])
+        # # pop_with_fitness.append([child_four,child_four_fit])
+        # pop_with_fitness = sort_population(pop_with_fitness)
+        # pop_with_fitness = pop_with_fitness[:100]
+ 
+        # number_of_generations += 1
+
+
+    best_fit_childs = sort_population(best_fit_childs)
+   
+    print("My Generations")
+    plt.figure()
+    geens = [x for x in range(1,number_of_generations+1)]
+    plt.plot(geens,gen_best,'green')
+    plt.show()
+    x , y = best_fit_childs[0][0]
+    plt.imshow(mainFrame,cmap="gray")
+
+    plt.scatter(y, x, s=50, c='red', marker='o')
+    plt.scatter(639, 105, s=50, c='green', marker='o')
+    plt.show()
+    # Population sorted on fitness
+    # max match 105 , 639 corr = 0.9923976390544154
+    fit = fitness_function(mainarray,babaarray,[105,639])
+    print(fit)
+    print(fitness_function(mainarray,babaarray,[105, 635]))
+    
+    # plt.imshow(baba,cmap="gray")
+    # plt.show()
+
+
+# Main Called 
+main()
+
+# Binary representaion
+
+arr = np.array([111,222])
+x = np.binary_repr(104,width=9)
+y = np.binary_repr(640,width=10)
+one = x+y
+
+x1 = np.binary_repr(105,width=9)
+y1 = np.binary_repr(643,width=10)
+two = x1+y1
+newone = one[:3] + two[3:]
+newtwo = two[:3] + one[3:]
+x = newone[:9]
+y = newone[9:]
+print(int(x,2))
+print(int(y,2))
+x = newtwo[:9]
+y = newtwo[9:]
+print(int(x,2))
+print(int(y,2))
+if newone[17] == "0":
+    newone = newone[:17] + "1" + newone[17+1:]
+else:
+    newone = newone[:17] + "0" + newone[17+1:]
+x = newone[:9]
+y = newone[9:]
+print(int(x,2))
+print(int(y,2))
+
+
